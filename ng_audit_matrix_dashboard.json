@@ -1,0 +1,429 @@
+{
+  "id": null,
+  "uid": "ng-audit-matrix",
+  "title": "NG Audit — Client × Shift Status Matrix",
+  "tags": ["ng-audit", "ops"],
+  "timezone": "Asia/Kolkata",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-2d", "to": "now" },
+  "timepicker": {},
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Customers",
+      "description": "All unique customers ever onboarded (all-time, not filtered by time range)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT uniqExact(client_name) AS total_customers\nFROM vusmart.ng_audit_summary_distributed",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "# Customer Data Received",
+      "description": "Customers that sent audit data in the selected time range",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT uniqExact(client_name) AS reporting\nFROM vusmart.ng_audit_summary_distributed\nWHERE $__timeFilter(timestamp)",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "# Customers with P1",
+      "description": "Customers with at least one P1 failure in the selected time range. Click to see which customers.",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "red" }] }
+        },
+        "overrides": []
+      },
+      "links": [
+        { "title": "View P1 Customers", "url": "/vui/d/ng-audit-matrix?viewPanel=11", "targetBlank": false }
+      ],
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT uniqExact(client_name) AS p1_customers\nFROM vusmart.ng_audit_summary_distributed\nWHERE p1_fail_count > 0\n  AND $__timeFilter(timestamp)",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "# Customers with P2",
+      "description": "Customers with at least one P2 failure in the selected time range. Click to see which customers.",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "orange" }] }
+        },
+        "overrides": []
+      },
+      "links": [
+        { "title": "View P2 Customers", "url": "/vui/d/ng-audit-matrix?viewPanel=12", "targetBlank": false }
+      ],
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT uniqExact(client_name) AS p2_customers\nFROM vusmart.ng_audit_summary_distributed\nWHERE p2_fail_count > 0\n  AND $__timeFilter(timestamp)",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 1,
+      "type": "gapit-htmlgraphics-panel",
+      "title": "Client × Shift Status Matrix",
+      "description": "Green = PASS  |  Orange = P2 failure only  |  Red = P1 failure  |  Grey = no data. Click any cell to open the detail dashboard for that shift.",
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 4 },
+      "options": {
+        "add100Percentage": true,
+        "codeData": "{}",
+        "css": "* { box-sizing: border-box; font-family: 'Inter', sans-serif; }\n.wrap { padding: 12px; overflow-x: auto; }\ntable { border-collapse: collapse; width: 100%; table-layout: auto; }\nth, td { border: 1px solid #333; padding: 7px 11px; text-align: center; font-size: 12px; white-space: nowrap; }\nth { background: #1e2433; color: #c5cedd; font-weight: 600; }\nthead th:first-child { width: 130px; min-width: 100px; max-width: 160px; text-align: left; }\ntd.cl { text-align: left; font-weight: 500; color: #c5cedd; background: #1e2433; width: 130px; min-width: 100px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\ntd.pass { background: #1a3a2a; color: #73bf69; cursor: pointer; text-decoration: underline; }\ntd.fail { background: #3d1a1a; color: #f2495c; cursor: pointer; font-weight: 700; text-decoration: underline; }\ntd.warn { background: #3d2a0a; color: #f89520; cursor: pointer; font-weight: 700; text-decoration: underline; }\ntd.nd { background: #23283a; color: #555f6b; }\ntd.pass:hover { background: #1f4a33; }\ntd.fail:hover { background: #501f1f; }\ntd.warn:hover { background: #4f3510; }\n.legend { margin-top: 8px; display: flex; gap: 14px; font-size: 11px; color: #8e9daa; }\n.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }\n.gd { background:#73bf69; } .rd { background:#f2495c; } .or { background:#f89520; } .gy { background:#555f6b; }",
+        "html": "<div class='wrap'><div id='mc'>Loading...</div><div class='legend'><span><span class='dot gd'></span>PASS</span><span><span class='dot rd'></span>P1 FAIL</span><span><span class='dot or'></span>P2 FAIL</span><span><span class='dot gy'></span>No data</span></div></div>",
+        "onRender": "function safeVals(f) {\n  if (!f || f.values == null) return [];\n  const v = f.values;\n  if (typeof v.toArray === 'function') return v.toArray();\n  if (Array.isArray(v)) return v;\n  const len = typeof v.length === 'number' ? v.length : 0;\n  return Array.from({length: len}, (_, i) => typeof v.get === 'function' ? v.get(i) : v[i]);\n}\nconst el = htmlNode.querySelector('#mc');\nif (!data.series || !data.series[0]) { el.innerHTML = '<p style=\"color:#8e9daa;padding:20px\">No audit data yet.</p>'; return; }\nconst frame = data.series[0];\nif (!frame.fields || !frame.fields.length) { el.innerHTML = '<p style=\"color:#8e9daa;padding:20px\">Empty response.</p>'; return; }\nconst F = {};\nframe.fields.forEach(f => { F[f.name] = safeVals(f); });\nconst n = (F.client_name || []).length;\nconst rows = [];\nfor (let i = 0; i < n; i++) {\n  const d = String(F.audit_date ? F.audit_date[i] : '');\n  if (!d) continue;\n  rows.push({ client: F.client_name[i], date: d, shift: F.shift[i], p1: Number(F.p1_fail_count ? F.p1_fail_count[i] : 0), p2: Number(F.p2_fail_count ? F.p2_fail_count[i] : 0), status: F.overall_status ? F.overall_status[i] : 'PASS' });\n}\nconst dSet = new Set(), cSet = new Set();\nrows.forEach(r => { dSet.add(r.date); cSet.add(r.client); });\nconst dates = Array.from(dSet).sort();\nconst clients = Array.from(cSet).sort();\nconst lut = {};\nrows.forEach(r => { lut[r.client+'|'+r.date+'|'+r.shift] = r; });\nconst base = '/vui/d/ng-audit-detail';\nlet h = '<table><thead><tr><th>Customer</th>';\ndates.forEach(d => { h += `<th colspan=\"2\">${d}</th>`; });\nh += '</tr><tr><th></th>';\ndates.forEach(() => { h += '<th>BOD</th><th>EOD</th>'; });\nh += '</tr></thead><tbody>';\nclients.forEach(c => {\n  h += `<tr><td class=\"cl\" title=\"${c}\">${c}</td>`;\n  dates.forEach(d => {\n    ['BOD','EOD'].forEach(s => {\n      const r = lut[c+'|'+d+'|'+s];\n      if (!r) { h += '<td class=\"nd\">—</td>'; return; }\n      const cls = r.p1 > 0 ? 'fail' : (r.status === 'FAIL' ? 'warn' : 'pass');\n      const lbl = cls === 'pass' ? 'PASS' : 'FAIL';\n      const p = `var-client=${encodeURIComponent(c)}&var-date=${d}&var-shift=${s}`;\n      h += `<td class=\"${cls}\" onclick=\"window.open('${base}?${p}','_blank')\">${lbl}</td>`;\n    });\n  });\n  h += '</tr>';\n});\nh += '</tbody></table>';\nel.innerHTML = h;",
+        "onInit": ""
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  client_name,\n  toString(date) AS audit_date,\n  shift,\n  overall_status,\n  p1_fail_count,\n  p2_fail_count\nFROM vusmart.ng_audit_summary_distributed\nWHERE timestamp >= now() - INTERVAL 2 DAY\nORDER BY audit_date DESC, client_name, shift",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "P1 — Affected Customers",
+      "description": "One row per customer. P1 count = distinct failing check types. If the same check failed in BOD and EOD it counts once. Click a customer to open their latest audit.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "P1 Count", "desc": true }] },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "client_name" },
+            "properties": [
+              { "id": "displayName", "value": "Customer" },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open Latest Audit",
+                    "url": "/vui/d/ng-audit-detail?var-client=${__data.fields.client_name}&var-date=${__data.fields.latest_date}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p1_count" },
+            "properties": [
+              { "id": "displayName", "value": "P1 Count" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "orange" }, { "value": 2, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "latest_date" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  client_name,\n  uniqExact(metrics_type) AS p1_count,\n  toString(max(date)) AS latest_date\nFROM vusmart.ng_audit_checks_distributed\nWHERE priority = 'P1'\n  AND $__timeFilter(timestamp)\nGROUP BY client_name\nORDER BY p1_count DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_checks_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "P2 — Affected Customers",
+      "description": "One row per customer. P2 count = distinct failing check types. If the same check failed in BOD and EOD it counts once. Click a customer to open their latest audit.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "P2 Count", "desc": true }] },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "client_name" },
+            "properties": [
+              { "id": "displayName", "value": "Customer" },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open Latest Audit",
+                    "url": "/vui/d/ng-audit-detail?var-client=${__data.fields.client_name}&var-date=${__data.fields.latest_date}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p2_count" },
+            "properties": [
+              { "id": "displayName", "value": "P2 Count" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "orange" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "latest_date" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  client_name,\n  uniqExact(metrics_type) AS p2_count,\n  toString(max(date)) AS latest_date\nFROM vusmart.ng_audit_checks_distributed\nWHERE priority = 'P2'\n  AND $__timeFilter(timestamp)\nGROUP BY client_name\nORDER BY p2_count DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_checks_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "All P1 Failures",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 40 },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Audit Time", "desc": true }]
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "audit_time" },
+            "properties": [{ "id": "displayName", "value": "Audit Time" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "client_name" },
+            "properties": [
+              { "id": "displayName", "value": "Customer" },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open Detail Dashboard",
+                    "url": "/vui/d/ng-audit-detail?var-client=${__data.fields.client_name}&var-date=${__data.fields.audit_date}&var-shift=${__data.fields.shift}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "audit_date" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "shift" },
+            "properties": [{ "id": "displayName", "value": "Shift" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "metrics_type" },
+            "properties": [{ "id": "displayName", "value": "Check Type" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "description" },
+            "properties": [{ "id": "displayName", "value": "Details" }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  formatDateTime(timestamp, '%Y-%m-%d %H:%i', 'Asia/Kolkata') AS audit_time,\n  client_name,\n  toString(date) AS audit_date,\n  shift,\n  metrics_type,\n  description\nFROM vusmart.ng_audit_checks_distributed\nWHERE priority = 'P1'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_checks_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "All P2 Events",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 52 },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Audit Time", "desc": true }]
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "audit_time" },
+            "properties": [{ "id": "displayName", "value": "Audit Time" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "client_name" },
+            "properties": [
+              { "id": "displayName", "value": "Customer" },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open Detail Dashboard",
+                    "url": "/vui/d/ng-audit-detail?var-client=${__data.fields.client_name}&var-date=${__data.fields.audit_date}&var-shift=${__data.fields.shift}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "audit_date" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "shift" },
+            "properties": [{ "id": "displayName", "value": "Shift" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "metrics_type" },
+            "properties": [{ "id": "displayName", "value": "Check Type" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "description" },
+            "properties": [{ "id": "displayName", "value": "Details" }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  formatDateTime(timestamp, '%Y-%m-%d %H:%i', 'Asia/Kolkata') AS audit_time,\n  client_name,\n  toString(date) AS audit_date,\n  shift,\n  metrics_type,\n  description\nFROM vusmart.ng_audit_checks_distributed\nWHERE priority = 'P2'\n  AND $__timeFilter(timestamp)\nORDER BY timestamp DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_checks_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "P1 Persistence — How Long Each Issue Has Been Active",
+      "description": "Shows how many days each P1 check type has been continuously failing per customer within the selected time range. A high 'Active Days' count means the issue has not been resolved across multiple audit runs.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 64 },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Active Days", "desc": true }]
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "client_name" },
+            "properties": [{ "id": "displayName", "value": "Customer" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "metrics_type" },
+            "properties": [{ "id": "displayName", "value": "Check Type" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "first_seen" },
+            "properties": [{ "id": "displayName", "value": "First Seen" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "last_seen" },
+            "properties": [{ "id": "displayName", "value": "Last Seen" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "active_days" },
+            "properties": [
+              { "id": "displayName", "value": "Active Days" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "orange" }, { "value": 3, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  client_name,\n  metrics_type,\n  toString(min(date)) AS first_seen,\n  toString(max(date)) AS last_seen,\n  uniqExact(date) AS active_days\nFROM vusmart.ng_audit_checks_distributed\nWHERE priority = 'P1'\n  AND $__timeFilter(timestamp)\nGROUP BY client_name, metrics_type\nORDER BY active_days DESC, client_name",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_checks_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "links": [
+    { "title": "Detail Dashboard", "url": "/vui/d/ng-audit-detail", "type": "link", "icon": "external link", "targetBlank": true }
+  ]
+}

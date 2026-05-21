@@ -1,0 +1,185 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ng-audit
+
+---
+# ── Secrets ────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ng-audit-secrets
+  namespace: ng-audit
+type: Opaque
+stringData:
+  EMAIL_PASSWORD:   "trro ervb uyws jytu"
+  CH_PASSWORD:      "Vunet#1234"
+  GREEN_API_TOKEN:  "a29efb612cb842eab150ee88ee29ca1b21086a6bce344dcea3"
+
+---
+# ── ConfigMap: subjects.txt ────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ng-audit-subjects
+  namespace: ng-audit
+data:
+  subjects.txt: |
+    NG Audit Check - AU Small Finance Bank - DC
+    NG Audit Check - Bank of Baroda - DR
+    NG Audit Check - Bank of Baroda - DC
+    NG Audit Check - Bajaj Financial Securities Limited - PROD
+    NG Audit Check - care - dev
+    NG Audit Check - Equitas - DC
+    NG Audit Check - Hitachi - PROD
+    NG Audit Check - IBL - DC
+    NG Audit Check - ICICI - VuLogx DC
+    NG Audit Check - ICICI - VuLogx DR
+    NG Audit Check - Karnataka Bank - PROD
+    NG Audit Check - Network International Jordan - PROD
+    NG Audit Check - NPCI - CTS
+    NG Audit Check - NPCI - EFRM
+    NG Audit Check - RBL BANK - PROD
+    NG Audit Check - Sarvatra Technologies Pvt. Ltd. - DC
+    NG Audit Check - UCO - PROD DC
+    NG Audit Check - Vision Bank - PROD
+
+---
+# ── PersistentVolumeClaim: processed mail IDs ──────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ng-audit-data
+  namespace: ng-audit
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+
+---
+# ── Deployment ─────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ng-audit-checker
+  namespace: ng-audit
+  labels:
+    app: ng-audit-checker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ng-audit-checker
+  template:
+    metadata:
+      labels:
+        app: ng-audit-checker
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+
+      containers:
+        - name: ng-audit-checker
+          image: ng-audit-checker:1.0
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+
+            # Email
+            - name: EMAIL_ADDRESS
+              value: "care-notifications@vunetsystems.com"
+            - name: EMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ng-audit-secrets
+                  key: EMAIL_PASSWORD
+            - name: IMAP_SERVER
+              value: "imap.gmail.com"
+
+            # ClickHouse
+            - name: CH_HOST
+              value: "clickhouse.vsmaps.svc.cluster.local"
+            - name: CH_PORT
+              value: "8123"
+            - name: CH_USER
+              value: "vusmartmanager"
+            - name: CH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ng-audit-secrets
+                  key: CH_PASSWORD
+
+            # Green API (WhatsApp)
+            - name: GREEN_INSTANCE_ID
+              value: "7103523858"
+            - name: GREEN_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ng-audit-secrets
+                  key: GREEN_API_TOKEN
+            - name: GREEN_GROUP_CHAT_ID
+              value: "120363424154615368@g.us"
+
+            # Dashboard
+            - name: DASHBOARD_URL
+              value: "http://bit.ly/4nc5oiI"
+
+            # Paths
+            - name: SUBJECTS_FILE
+              value: "/config/subjects.txt"
+            - name: PROCESSED_MAIL_IDS_FILE
+              value: "/data/ng_processed_mail_ids.json"
+            - name: HEARTBEAT_FILE
+              value: "/tmp/ng_audit_heartbeat"
+
+            # Tuning
+            - name: POLL_INTERVAL_SECONDS
+              value: "120"
+            - name: IMAP_TIMEOUT
+              value: "30"
+            - name: HEALTH_PORT
+              value: "8083"
+
+          ports:
+            - name: healthz
+              containerPort: 8083
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8083
+            initialDelaySeconds: 60   # give the first cycle time to complete
+            periodSeconds: 60
+            failureThreshold: 3       # restart after 3 consecutive failures (~3 missed cycles)
+            timeoutSeconds: 5
+
+          volumeMounts:
+            - name: subjects
+              mountPath: /config
+              readOnly: true
+            - name: data
+              mountPath: /data
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+      volumes:
+        - name: subjects
+          configMap:
+            name: ng-audit-subjects
+        - name: data
+          persistentVolumeClaim:
+            claimName: ng-audit-data
+

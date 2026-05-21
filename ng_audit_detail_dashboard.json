@@ -1,0 +1,602 @@
+{
+  "id": null,
+  "uid": "ng-audit-detail",
+  "title": "NG Audit — Detail: ${client} / ${date} / ${shift}",
+  "tags": ["ng-audit", "detail", "ops"],
+  "timezone": "Asia/Kolkata",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "",
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "templating": {
+    "list": [
+      {
+        "name": "client",
+        "label": "Client",
+        "type": "query",
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+        "query": "SELECT DISTINCT client_name FROM vusmart.ng_audit_summary_distributed ORDER BY client_name",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "date",
+        "label": "Date",
+        "type": "query",
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+        "query": "SELECT DISTINCT toString(date) FROM vusmart.ng_audit_summary_distributed WHERE client_name = '${client}' ORDER BY date DESC",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 0,
+        "hide": 0
+      },
+      {
+        "name": "shift",
+        "label": "Shift",
+        "type": "query",
+        "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+        "query": "SELECT DISTINCT shift FROM vusmart.ng_audit_summary_distributed WHERE client_name = '${client}' AND toString(date) = '${date}' ORDER BY shift",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": "All",
+        "multi": false,
+        "sort": 0,
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Overall Status",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "options": { "reduceOptions": { "values": true, "calcs": [], "fields": "/.+/" }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "PASS": { "text": "PASS", "color": "green", "index": 0 }, "FAIL": { "text": "FAIL", "color": "red", "index": 1 } } }
+          ],
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT if(countIf(overall_status = 'FAIL') > 0, 'FAIL', 'PASS') AS overall_status\nFROM vusmart.ng_audit_summary_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "P1 Failures",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "red" }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT countIf(priority = 'P1') AS p1_fail_count\nFROM vusmart.ng_audit_checks_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "P2 Failures",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "orange" }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT countIf(priority = 'P2') AS p2_fail_count\nFROM vusmart.ng_audit_checks_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_summary_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Threshold Breaches — P1 & P2",
+      "description": "All threshold failures for this audit run. Each row is one consolidated check category — see Details column for all affected resources. Rows with P1 priority are critical.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "Priority", "desc": false }] },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "check_time" },
+            "properties": [{ "id": "displayName", "value": "Check Time" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "priority" },
+            "properties": [
+              { "id": "displayName", "value": "Priority" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "mappings", "value": [{ "type": "value", "options": { "P1": { "color": "red", "index": 0 }, "P2": { "color": "orange", "index": 1 } } }] },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "metrics_type" },
+            "properties": [
+              { "id": "displayName", "value": "Check Type" },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View Detail Panel",
+                    "url": "/vui/d/ng-audit-detail/07802321-c5bd-5dc7-876e-caa9bf494912?orgId=1&var-client=${client}&var-date=${date}&var-shift=${shift}&viewPanel=${__data.fields.panel_id}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "panel_id" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ip" },
+            "properties": [{ "id": "displayName", "value": "Target / Host" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "description" },
+            "properties": [{ "id": "displayName", "value": "Details" }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  formatDateTime(timestamp, '%Y-%m-%d %H:%i', 'Asia/Kolkata') AS check_time,\n  priority,\n  metrics_type,\n  ip,\n  description,\n  multiIf(\n    metrics_type = 'Disk Summary Check',             '20',\n    metrics_type = 'Unhealthy Pod Check (Critical)', '30',\n    metrics_type = 'Pod Resource Check',             '31',\n    metrics_type = 'Node Resource Check',            '32',\n    metrics_type = 'Pod/Node Resource Check',        '31',\n    metrics_type = 'Kafka Lag Check',                '40',\n    metrics_type = 'Data Retention Check',           '50',\n    metrics_type = 'License Check',                  '60',\n    ''\n  ) AS panel_id\nFROM vusmart.ng_audit_checks_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\nORDER BY priority ASC, timestamp DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_checks_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Disk Usage — All Nodes & Pods",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 12 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "target_type" },
+            "properties": [{ "id": "displayName", "value": "Type" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "target" },
+            "properties": [{ "id": "displayName", "value": "Host / Pod" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mount_path" },
+            "properties": [{ "id": "displayName", "value": "Mount Path" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "usage_pct" },
+            "properties": [
+              { "id": "displayName", "value": "Usage %" },
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.displayMode", "value": "gradient-gauge" },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 110 },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 70, "color": "orange" }, { "value": 80, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "threshold_pct" },
+            "properties": [{ "id": "displayName", "value": "Threshold %" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              { "id": "displayName", "value": "Status" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "mappings", "value": [{ "type": "value", "options": { "Pass": { "color": "green", "index": 0 }, "Fail": { "color": "red", "index": 1 }, "Warn": { "color": "orange", "index": 2 } } }] },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  target_type,\n  target,\n  mount_path,\n  usage_pct,\n  threshold_pct,\n  status\nFROM vusmart.ng_audit_disk_metrics_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\nORDER BY usage_pct DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_disk_metrics_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 30,
+      "type": "table",
+      "title": "Unhealthy Pods (P1)",
+      "description": "Core pods in crashing / pending / failed state — each row is a P1 signal",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "namespace" },
+            "properties": [{ "id": "displayName", "value": "Namespace" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pod_name" },
+            "properties": [{ "id": "displayName", "value": "Pod Name" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pod_status" },
+            "properties": [
+              { "id": "displayName", "value": "Status" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "mappings", "value": [{ "type": "value", "options": {
+                "crashing": { "color": "red",    "index": 0 },
+                "failed":   { "color": "red",    "index": 1 },
+                "error":    { "color": "red",    "index": 2 },
+                "pending":  { "color": "orange", "index": 3 },
+                "unknown":  { "color": "grey",   "index": 4 }
+              } }] },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  namespace,\n  pod_name,\n  pod_status\nFROM vusmart.ng_audit_pod_metrics_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\n  AND namespace != 'node'\n  AND pod_status != 'high_usage'\nORDER BY pod_status, namespace, pod_name",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_pod_metrics_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 31,
+      "type": "table",
+      "title": "Pod Resource Usage (High CPU/Memory)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "namespace" },
+            "properties": [{ "id": "displayName", "value": "Namespace" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pod_name" },
+            "properties": [{ "id": "displayName", "value": "Pod Name" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "cpu_usage_pct" },
+            "properties": [
+              { "id": "displayName", "value": "CPU %" },
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.displayMode", "value": "gradient-gauge" },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 100 },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 70, "color": "orange" }, { "value": 80, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  namespace,\n  pod_name,\n  cpu_usage_pct\nFROM vusmart.ng_audit_pod_metrics_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\n  AND namespace != 'node'\n  AND pod_status = 'high_usage'\nORDER BY cpu_usage_pct DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_pod_metrics_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 32,
+      "type": "table",
+      "title": "Node Resource Usage (CPU & Memory)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 40 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "hostname" },
+            "properties": [{ "id": "displayName", "value": "Hostname" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "cpu_usage_pct" },
+            "properties": [
+              { "id": "displayName", "value": "CPU %" },
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.displayMode", "value": "gradient-gauge" },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 100 },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 70, "color": "orange" }, { "value": 80, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "memory_usage_pct" },
+            "properties": [
+              { "id": "displayName", "value": "Memory %" },
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.displayMode", "value": "gradient-gauge" },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 100 },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 70, "color": "orange" }, { "value": 80, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  pod_name AS hostname,\n  cpu_usage_pct,\n  memory_usage_pct\nFROM vusmart.ng_audit_pod_metrics_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\n  AND namespace = 'node'\nORDER BY memory_usage_pct DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_pod_metrics_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 40,
+      "type": "table",
+      "title": "Kafka Consumer Lag",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 50 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "consumer_group" },
+            "properties": [{ "id": "displayName", "value": "Consumer Group" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "topic" },
+            "properties": [{ "id": "displayName", "value": "Topic" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "lag_count" },
+            "properties": [
+              { "id": "displayName", "value": "Lag Count" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 10000000, "color": "orange" }, { "value": 100000000, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              { "id": "displayName", "value": "Status" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "mappings", "value": [{ "type": "value", "options": { "Pass": { "color": "green", "index": 0 }, "Fail": { "color": "red", "index": 1 } } }] },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  consumer_group,\n  topic,\n  lag_count,\n  status\nFROM vusmart.ng_audit_kafka_metrics_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\nORDER BY status ASC, lag_count DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_kafka_metrics_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 50,
+      "type": "table",
+      "title": "Data Retention Status",
+      "description": "All tables checked in this audit run. Failing tables are also summarised (consolidated) in the Threshold Breaches panel above.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 60 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "table_name" },
+            "properties": [{ "id": "displayName", "value": "Table" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "days_diff" },
+            "properties": [{ "id": "displayName", "value": "Days Behind" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "retention_days" },
+            "properties": [{ "id": "displayName", "value": "Retention (days)" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              { "id": "displayName", "value": "Status" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "mappings", "value": [
+                { "type": "regex", "options": { "pattern": "^Pass", "result": { "color": "green", "index": 0 } } },
+                { "type": "regex", "options": { "pattern": "^Fail$", "result": { "color": "red", "index": 1 } } },
+                { "type": "regex", "options": { "pattern": "^Fail \\(", "result": { "color": "orange", "index": 2 } } }
+              ] },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  table_name,\n  days_diff,\n  retention_days,\n  status\nFROM vusmart.ng_audit_retention_metrics_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\nORDER BY status ASC, days_diff DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_retention_metrics_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 60,
+      "type": "table",
+      "title": "License Check",
+      "description": "License expiry, usage, and days remaining for this audit run.",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 70 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "expiry_date" },
+            "properties": [{ "id": "displayName", "value": "Expiry Date" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "days_remaining" },
+            "properties": [
+              { "id": "displayName", "value": "Days Remaining" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 30, "color": "orange" }, { "value": 0, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "usage_pct" },
+            "properties": [
+              { "id": "displayName", "value": "Usage %" },
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.displayMode", "value": "gradient-gauge" },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 110 },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 70, "color": "orange" }, { "value": 80, "color": "red" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              { "id": "displayName", "value": "Status" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "mappings", "value": [{ "type": "value", "options": {
+                "Normal":   { "color": "green",  "index": 0 },
+                "Warning":  { "color": "orange", "index": 1 },
+                "Critical": { "color": "red",    "index": 2 },
+                "Expired":  { "color": "dark-red", "index": 3 }
+              } }] },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  expiry_date,\n  days_remaining,\n  usage_pct,\n  status\nFROM vusmart.ng_audit_license_metrics_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\nORDER BY timestamp DESC\nLIMIT 1",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_license_metrics_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    },
+    {
+      "id": 70,
+      "type": "table",
+      "title": "User Engagement",
+      "description": "Top active users by login count for this audit period.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 76 },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "username" },
+            "properties": [{ "id": "displayName", "value": "Username" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "logins" },
+            "properties": [
+              { "id": "displayName", "value": "Logins" },
+              { "id": "custom.displayMode", "value": "gradient-gauge" },
+              { "id": "min", "value": 0 },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] } },
+              { "id": "color", "value": { "mode": "thresholds" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "duration" },
+            "properties": [{ "id": "displayName", "value": "Duration" }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" },
+          "queryType": "sql",
+          "rawSql": "SELECT\n  username,\n  logins,\n  duration\nFROM vusmart.ng_audit_user_engagement_distributed\nWHERE client_name = '${client}'\n  AND toString(date) = '${date}'\n  AND ('${shift}' = 'All' OR shift = '${shift}')\nORDER BY logins DESC",
+          "format": 1,
+          "meta": { "builderOptions": { "database": "vusmart", "table": "ng_audit_user_engagement_distributed", "queryType": "select" } }
+        }
+      ],
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "f3f96d8a-2515-4db9-bac0-d47116739fb5" }
+    }
+  ],
+  "annotations": { "list": [] },
+  "links": [
+    { "title": "Matrix Dashboard", "url": "/vui/d/ng-audit-matrix", "type": "link", "icon": "external link", "targetBlank": false }
+  ]
+}
