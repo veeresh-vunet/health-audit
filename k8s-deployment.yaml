@@ -13,9 +13,9 @@ metadata:
   namespace: ng-audit
 type: Opaque
 stringData:
-  EMAIL_PASSWORD:   "trro ervb uyws jytu"
-  CH_PASSWORD:      "Vunet#1234"
-  GREEN_API_TOKEN:  "a29efb612cb842eab150ee88ee29ca1b21086a6bce344dcea3"
+  EMAIL_PASSWORD:   ""
+  CH_PASSWORD:      ""
+  GREEN_API_TOKEN:  ""
 
 ---
 # ── ConfigMap: subjects.txt ────────────────────────────────────────────────────
