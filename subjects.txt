@@ -1,17 +1,18 @@
-NG Audit Check - AU Small Finance Bank - DC
-NG Audit Check - Bank of Baroda - DR
-NG Audit Check - Bank of Baroda - DC
-NG Audit Check - Bajaj Financial Securities Limited - PROD
-NG Audit Check - care - dev
-NG Audit Check - Equitas - DC
-NG Audit Check - Hitachi - PROD
-NG Audit Check - IBL - DC
-NG Audit Check - ICICI - VuLogx DC
-NG Audit Check - ICICI - VuLogx DR
-NG Audit Check - Karnataka Bank - PROD
-NG Audit Check - Network International Jordan - Prod
-NG Audit Check - RBL BANK - PROD
-NG Audit Check - Sarvatra Technologies Pvt. Ltd. - DC
-NG Audit Check - UCO - DC
-NG Audit Check - UCO - DR
-NG Audit Check - Vision Bank - PROD
+NG Audit Check - AU Small Finance Bank - DC - vaibhav@vunetsystems.com
+NG Audit Check - Bank of Baroda - DR - vinod@vunetsystems.com
+NG Audit Check - Bank of Baroda - DC - vinod@vunetsystems.com
+NG Audit Check - Bajaj Financial Securities Limited - PROD - shinde@vunetsystems.com
+NG Audit Check - Equitas - DC - sivakumar@vunetsystems.com
+NG Audit Check - Hitachi - PROD - savithri@vunetsystems.com
+NG Audit Check - IBL - DC - shinde@vunetsystems.com
+NG Audit Check - ICICI - VuLogx DC - savithri@vunetsystems.com
+NG Audit Check - ICICI - VuLogx DR - savithri@vunetsystems.com
+NG Audit Check - Karnataka Bank - PROD - savithri@vunetsystems.com
+NG Audit Check - Network International Jordan - PROD - rajaram@vunetsystems.com
+NG Audit Check - NPCI - CTS - vaibhav@vunetsystems.com
+NG Audit Check - NPCI - EFRM - vaibhav@vunetsystems.com
+NG Audit Check - RBL BANK - PROD - nimai@vunetsystems.com
+NG Audit Check - Sarvatra Technologies Pvt. Ltd. - DC - nimai@vunetsystems.com
+NG Audit Check - UCO - DC - ramkumars@vunetsystems.com
+NG Audit Check - UCO - DR - ramkumars@vunetsystems.com
+NG Audit Check - Vision Bank - PROD - sivakumar@vunetsystems.com

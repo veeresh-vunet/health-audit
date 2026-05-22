@@ -28,13 +28,58 @@ _SUBJECTS_FILE = os.environ.get(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "subjects.txt"),
 )
 
-def _load_subjects(path: str) -> list[str]:
+def _load_subjects(path: str) -> tuple[list[str], dict[str, str]]:
+    """
+    Parse subjects.txt.  Each line is either:
+      NG Audit Check - CLIENT NAME - ENV              (no email)
+      NG Audit Check - CLIENT NAME - ENV - user@x.com (email appended)
+    Returns (imap_subjects, subject→email map).
+    The email is stripped before IMAP search so it matches actual mail subjects.
+    """
+    subjects:  list[str]       = []
+    email_map: dict[str, str]  = {}
     with open(path) as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            last = line.rfind(" - ")
+            if last != -1:
+                candidate = line[last + 3:].strip()
+                first = candidate.split(",")[0].strip()
+                if "@" in first and "." in first.split("@")[-1]:
+                    subject = line[:last].strip()
+                    email_map[subject] = candidate
+                    subjects.append(subject)
+                    continue
+            subjects.append(line)
+    return subjects, email_map
 
-TARGET_SUBJECTS = _load_subjects(_SUBJECTS_FILE)
+if "--version" in sys.argv:
+    TARGET_SUBJECTS, SUBJECT_EMAIL_MAP = [], {}
+else:
+    TARGET_SUBJECTS, SUBJECT_EMAIL_MAP = _load_subjects(_SUBJECTS_FILE)
+
+VERSION = "2.0.2"
 
 DRY_RUN = False
+
+# ─────────────────────────────────────────────
+#  EMAIL ALERT CONFIG
+# ─────────────────────────────────────────────
+from ng_audit_emailer import (
+    ALERT_CC, MISSING_AUDIT_CC,
+    build_alert_html, build_missing_html, send_email,
+)
+
+# After these IST hours, fire a "no report received" email for that shift
+BOD_GRACE_HOUR = int(os.environ.get("BOD_GRACE_HOUR", "11"))   # 11:00 AM
+EOD_GRACE_HOUR = int(os.environ.get("EOD_GRACE_HOUR", "21"))   # 9:00 PM
+
+MISSING_AUDIT_TRACKING_FILE = os.environ.get(
+    "MISSING_AUDIT_TRACKING_FILE",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "ng_missing_audit_tracking.json"),
+)
 
 # ─────────────────────────────────────────────
 #  GREEN API (WhatsApp) CONFIG
@@ -168,6 +213,93 @@ def mark_processed_mail_id(mail_id: str) -> None:
     with open(tmp, "w") as f:
         json.dump(ids, f)
     os.replace(tmp, PROCESSED_MAIL_IDS_FILE)
+
+# ═══════════════════════════════════════════════════════════════
+#  MISSING-AUDIT TRACKING
+# ═══════════════════════════════════════════════════════════════
+
+def _read_missing_tracking() -> dict:
+    if not os.path.exists(MISSING_AUDIT_TRACKING_FILE):
+        return {}
+    try:
+        with open(MISSING_AUDIT_TRACKING_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _write_missing_tracking(data: dict) -> None:
+    os.makedirs(os.path.dirname(MISSING_AUDIT_TRACKING_FILE) or ".", exist_ok=True)
+    tmp = MISSING_AUDIT_TRACKING_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, MISSING_AUDIT_TRACKING_FILE)
+
+
+def mark_audit_received(subject: str, date_str: str, shift: str) -> None:
+    t = _read_missing_tracking()
+    t.setdefault(subject, {}).setdefault(date_str, {})[shift] = "received"
+    _write_missing_tracking(t)
+
+
+def _missing_alert_sent(subject: str, date_str: str, shift: str) -> bool:
+    return _read_missing_tracking().get(subject, {}).get(date_str, {}).get(f"{shift}_missing_sent", False)
+
+
+def _mark_missing_sent(subject: str, date_str: str, shift: str) -> None:
+    t = _read_missing_tracking()
+    t.setdefault(subject, {}).setdefault(date_str, {})[f"{shift}_missing_sent"] = True
+    _write_missing_tracking(t)
+
+
+def _audit_received(subject: str, date_str: str, shift: str) -> bool:
+    return _read_missing_tracking().get(subject, {}).get(date_str, {}).get(shift) == "received"
+
+
+def check_missing_audits() -> None:
+    """Send a missing-audit email for any subject that hasn't reported by its grace window."""
+    now      = datetime.now(IST)
+    date_str = now.strftime("%Y-%m-%d")
+    hour     = now.hour
+
+    shifts_due = []
+    if hour >= BOD_GRACE_HOUR:
+        shifts_due.append("BOD")
+    if hour >= EOD_GRACE_HOUR:
+        shifts_due.append("EOD")
+    if not shifts_due:
+        return
+
+    display_date = now.strftime("%d %b %Y")
+    for subject in TARGET_SUBJECTS:
+        to_addr = SUBJECT_EMAIL_MAP.get(subject)
+        if not to_addr:
+            continue
+        client_name = client_name_from_subject(subject)
+        for shift in shifts_due:
+            if _audit_received(subject, date_str, shift):
+                continue
+            if _missing_alert_sent(subject, date_str, shift):
+                continue
+            # Send missing-audit email with escalated CC
+            print(f"[!] No {shift} audit for {client_name} — sending missing alert")
+            subject_line = f"⚠️ {client_name} — {shift} report missing | {display_date}"
+            html, tagline = build_missing_html(client_name, shift, display_date)
+            # Mark BEFORE sending — prevents infinite retry loop if SMTP fails.
+            # One attempt per client/shift/day regardless of outcome.
+            _mark_missing_sent(subject, date_str, shift)
+            send_email(
+                from_addr  = EMAIL_ADDRESS,
+                password   = EMAIL_PASSWORD,
+                to_addr    = to_addr,
+                cc_addrs   = MISSING_AUDIT_CC,
+                subject    = subject_line,
+                html       = html,
+                has_p1     = False,
+                is_missing = True,
+                tagline    = tagline,
+            )
+
 
 # ═══════════════════════════════════════════════════════════════
 #  SHIFT HELPER
@@ -740,47 +872,88 @@ def publish_to_clickhouse(client_name: str, body: str, mail_date, report: dict) 
 
 def run_once():
     emails = fetch_unprocessed_audit_emails()
+
+    # Track received for missing-audit logic regardless of whether alerts fire
+    now      = datetime.now(IST)
+    date_str = now.strftime("%Y-%m-%d")
+    shift    = get_shift(now)
+
     if not emails:
         print("[*] No new audit emails found.")
-        return
+    else:
+        for e in emails:
+            body      = e["body"]
+            mail_date = e["mail_date"]
+            mail_id   = e["mail_id"]
+            subject   = e["subject"]
 
-    for e in emails:
-        sender_email = e["sender_email"]
-        body         = e["body"]
-        mail_date    = e["mail_date"]
-        mail_id      = e["mail_id"]
+            client_name = client_name_from_subject(subject)
+            print(f"[+] Client resolved: {client_name}  (subject: {subject})")
 
-        client_name = client_name_from_subject(e["subject"])
-        print(f"[+] Client resolved: {client_name}  (subject: {e['subject']})")
+            # Mark that this client sent an audit for today's shift
+            mark_audit_received(subject, date_str, get_shift(mail_date))
 
-        # ── Parse for WhatsApp alert logic ──────────────────────
-        report = parse_audit_report(body)
-        print(f"[+] Failures detected: {report['has_failures']}")
+            # ── Parse ────────────────────────────────────────────
+            report = parse_audit_report(body)
+            print(f"[+] Failures detected: {report['has_failures']}")
 
-        # ── Write all audit data to ClickHouse ──────────────────
-        publish_to_clickhouse(client_name, body, mail_date, report)
+            # ── ClickHouse ───────────────────────────────────────
+            publish_to_clickhouse(client_name, body, mail_date, report)
 
-        # ── WhatsApp alert (only on failures) ───────────────────
-        if not report["has_failures"]:
-            print("[✓] All checks passed. No WhatsApp alert needed.")
+            # ── Email alert (always when failures present) ───────
+            to_addr = SUBJECT_EMAIL_MAP.get(subject)
+            if to_addr and report["has_failures"]:
+                p1 = [i for i in report["summary"] if i.get("priority") == "P1"]
+                p2 = [i for i in report["summary"] if i.get("priority") == "P2"]
+                counts = ", ".join(filter(None, [
+                    f"{len(p1)} P1" if p1 else "",
+                    f"{len(p2)} P2" if p2 else "",
+                ]))
+                icon     = "🔴" if p1 else "🟡"
+                subj_line = (f"{icon} {client_name} — {counts}"
+                             f" | {get_shift(mail_date)} {mail_date.strftime('%d %b %Y')}")
+                html, tagline = build_alert_html(
+                    client_name, report,
+                    get_shift(mail_date),
+                    mail_date.strftime("%d %b %Y, %I:%M %p IST"),
+                )
+                if not DRY_RUN:
+                    send_email(
+                        from_addr = EMAIL_ADDRESS,
+                        password  = EMAIL_PASSWORD,
+                        to_addr   = to_addr,
+                        cc_addrs  = ALERT_CC,
+                        subject   = subj_line,
+                        html      = html,
+                        has_p1    = bool(p1),
+                        has_p2    = bool(p2),
+                        tagline   = tagline,
+                    )
+                else:
+                    print(f"[DRY RUN] Email skipped → {to_addr}  | {subj_line}")
+
+            # ── WhatsApp alert (only on failures) ────────────────
+            if not report["has_failures"]:
+                print("[✓] All checks passed. No alert needed.")
+                mark_processed_mail_id(mail_id)
+                continue
+
+            message = build_whatsapp_message(client_name, report, mail_date)
+            print("\n── WhatsApp message preview ──────────────────────")
+            print(message)
+            print("──────────────────────────────────────────────────\n")
+
+            if DRY_RUN:
+                print("[DRY RUN] Skipping WhatsApp delivery.")
+                mark_processed_mail_id(mail_id)
+                continue
+
+            success = send_whatsapp_message(message)
+            print("[✓] Alert delivered." if success else "[✗] Alert delivery failed.")
             mark_processed_mail_id(mail_id)
-            continue
 
-        message = build_whatsapp_message(client_name, report, mail_date)
-        print("\n── WhatsApp message preview ──────────────────────────────")
-        print(message)
-        print("──────────────────────────────────────────────────────────\n")
-
-        if DRY_RUN:
-            print("[DRY RUN] Skipping WhatsApp delivery.")
-            mark_processed_mail_id(mail_id)
-            continue
-
-        success = send_whatsapp_message(message)
-        print("[✓] Alert delivered." if success else "[✗] Alert delivery failed.")
-        if success:
-            mark_processed_mail_id(mail_id)
-
+    # ── Check for missing audits after processing this cycle ────
+    check_missing_audits()
     return True
 
 
@@ -825,6 +998,7 @@ def main():
     global DRY_RUN
 
     parser = argparse.ArgumentParser(description="NG Audit Check - WhatsApp alert + ClickHouse publisher")
+    parser.add_argument("--version", action="version", version=f"ng-audit-checker {VERSION}")
     parser.add_argument("--dry-run", action="store_true",
                         help="Parse email and print WhatsApp message, but do not send it.")
     args = parser.parse_args()

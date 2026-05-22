@@ -26,38 +26,38 @@ metadata:
   namespace: ng-audit
 data:
   subjects.txt: |
-    NG Audit Check - AU Small Finance Bank - DC
-    NG Audit Check - Bank of Baroda - DR
-    NG Audit Check - Bank of Baroda - DC
-    NG Audit Check - Bajaj Financial Securities Limited - PROD
-    NG Audit Check - care - dev
-    NG Audit Check - Equitas - DC
-    NG Audit Check - Hitachi - PROD
-    NG Audit Check - IBL - DC
-    NG Audit Check - ICICI - VuLogx DC
-    NG Audit Check - ICICI - VuLogx DR
-    NG Audit Check - Karnataka Bank - PROD
-    NG Audit Check - Network International Jordan - PROD
-    NG Audit Check - NPCI - CTS
-    NG Audit Check - NPCI - EFRM
-    NG Audit Check - RBL BANK - PROD
-    NG Audit Check - Sarvatra Technologies Pvt. Ltd. - DC
-    NG Audit Check - UCO - PROD DC
-    NG Audit Check - Vision Bank - PROD
+    NG Audit Check - AU Small Finance Bank - DC - vaibhav@vunetsystems.com
+    NG Audit Check - Bank of Baroda - DR - vinod@vunetsystems.com
+    NG Audit Check - Bank of Baroda - DC - vinod@vunetsystems.com
+    NG Audit Check - Bajaj Financial Securities Limited - PROD - shinde@vunetsystems.com
+    NG Audit Check - Equitas - DC - sivakumar@vunetsystems.com
+    NG Audit Check - Hitachi - PROD - savithri@vunetsystems.com
+    NG Audit Check - IBL - DC - shinde@vunetsystems.com
+    NG Audit Check - ICICI - VuLogx DC - savithri@vunetsystems.com
+    NG Audit Check - ICICI - VuLogx DR - savithri@vunetsystems.com
+    NG Audit Check - Karnataka Bank - PROD - savithri@vunetsystems.com
+    NG Audit Check - Network International Jordan - PROD - rajaram@vunetsystems.com
+    NG Audit Check - NPCI - CTS - vaibhav@vunetsystems.com
+    NG Audit Check - NPCI - EFRM - vaibhav@vunetsystems.com
+    NG Audit Check - RBL BANK - PROD - nimai@vunetsystems.com
+    NG Audit Check - Sarvatra Technologies Pvt. Ltd. - DC - nimai@vunetsystems.com
+    NG Audit Check - UCO - DC - ramkumars@vunetsystems.com
+    NG Audit Check - UCO - DR - ramkumars@vunetsystems.com
+    NG Audit Check - Vision Bank - PROD - sivakumar@vunetsystems.com
 
 ---
 # ── PersistentVolumeClaim: processed mail IDs ──────────────────────────────────
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ng-audit-data
-  namespace: ng-audit
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 50Mi
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: ng-audit-data
+#  namespace: ng-audit
+#spec:
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 50Mi
 
 ---
 # ── Deployment ─────────────────────────────────────────────────────────────────
@@ -78,6 +78,9 @@ spec:
       labels:
         app: ng-audit-checker
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: e2e-102-128
+
       securityContext:
         runAsUser: 1000
         runAsNonRoot: true
@@ -85,7 +88,7 @@ spec:
 
       containers:
         - name: ng-audit-checker
-          image: ng-audit-checker:1.0
+          image: ng-audit-checker:2.0.2
           imagePullPolicy: IfNotPresent
 
           env:
@@ -136,8 +139,22 @@ spec:
               value: "/config/subjects.txt"
             - name: PROCESSED_MAIL_IDS_FILE
               value: "/data/ng_processed_mail_ids.json"
+            - name: MISSING_AUDIT_TRACKING_FILE
+              value: "/data/ng_missing_audit_tracking.json"
             - name: HEARTBEAT_FILE
               value: "/tmp/ng_audit_heartbeat"
+
+            # Alert email CC lists (comma-separated)
+            - name: ALERT_CC
+              value: "care-team@vunetsystems.com"
+            - name: MISSING_AUDIT_CC
+              value: "care-team@vunetsystems.com,mathew@vunetsystems.com,bharat@vunetsystems.com,ramshankar@vunetsystems.com"
+
+            # Missing-audit grace windows (IST hour, 24h)
+            - name: BOD_GRACE_HOUR
+              value: "12"
+            - name: EOD_GRACE_HOUR
+              value: "22"
 
             # Tuning
             - name: POLL_INTERVAL_SECONDS
